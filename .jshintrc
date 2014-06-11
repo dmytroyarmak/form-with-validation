@@ -1,0 +1,10 @@
+{
+    "node": true,
+    "browser": true,
+    "jquery": true,
+    "esnext": true,
+    "strict": false,
+    "globals": {
+      "Modernizr": false
+    }
+}
