@@ -1,6 +1,6 @@
 // Cross-platform placeholders
 $(function() {
-  var setPlaceholder = function() {
+  function setPlaceholder() {
     var $this = $(this);
     if (!$this.val()) {
       // Change type for password input to show placeholder
@@ -10,9 +10,9 @@ $(function() {
 
       $this.val($this.attr('placeholder'));
     }
-  };
+  }
 
-  var unsetPlaceholder = function() {
+  function unsetPlaceholder() {
     var $this = $(this);
     if ($this.val() === $this.attr('placeholder')) {
       // Change back type for password input
@@ -22,34 +22,33 @@ $(function() {
 
       $this.val('');
     }
-  };
+  }
 
-  var configAllPlaceholders = function() {
+  function configAllPlaceholders() {
     $('input[placeholder]').each(function() {
       setPlaceholder.call(this);
       $(this)
         .on('focus', unsetPlaceholder)
         .on('blur', setPlaceholder);
     });
-  };
+  }
 
   if (!Modernizr.input.placeholder) {
     configAllPlaceholders();
   }
 });
 
+// Form submitting
 $(function() {
-  var $form = $('js-register-form form');
-
-  var $successAjax = function(options) {
+  function $successAjax(options) {
     if (options.success) {
       setTimeout(function ajaxSuccessCallback() {
         options.success.call(options.context);
       }, 200);
     }
-  };
+  }
 
-  var $errorAjax = function(options) {
+  function $errorAjax(options) {
     if (options.error) {
       setTimeout(function ajaxErrorCallback() {
         options.error.call(options.context, {
@@ -63,9 +62,46 @@ $(function() {
         });
       }, 200);
     }
-  };
+  }
 
-  var showValidationsErrors = function(errors) {
+  function $fakeAjax(result, options) {
+    switch(result) {
+      case 'success':
+        $successAjax(options);
+        break;
+      case 'error':
+        $errorAjax(options);
+        break;
+    }
+  }
+
+  function submitFormWithResult(result) {
+    return function(e) {
+      e.preventDefault();
+
+      hideValidationsErrors();
+
+      $fakeAjax(result, {
+        url : '/register',
+        method: 'POST',
+        dataType: 'json',
+        data: $('js-register-form form').serializeArray(),
+
+        success: function onRegisterSuccess() {
+          $('.js-register-form').hide();
+          $('.js-register-thank-you').show();
+        },
+
+        error: function onRegisterError(data) {
+          if (data.responseJSON && data.responseJSON.errors) {
+            showValidationsErrors(data.responseJSON.errors);
+          }
+        }
+      });
+    };
+  }
+
+  function showValidationsErrors(errors) {
     $.each(errors, function(field, error) {
       var $errorMsg = $('<span>').addClass('help-block').text(error);
 
@@ -73,45 +109,13 @@ $(function() {
         .after($errorMsg)
         .closest('.form-group').addClass('has-error');
     });
-  };
+  }
 
-  var hideValidationsErrors = function() {
+  function hideValidationsErrors() {
     $('.form-group.has-error').removeClass('has-error');
     $('.help-block').remove();
-  };
+  }
 
-  $('.js-btn-success').on('click', function(e) {
-    e.preventDefault();
-
-    hideValidationsErrors();
-
-    $successAjax({
-      url : '/register',
-      method: 'POST',
-      dataType: 'json',
-      data: $form.serializeArray(),
-      success: function onSubmitSuccess() {
-        $('.js-register-form').hide();
-        $('.js-register-thank-you').show();
-      }
-    });
-  });
-
-  $('.js-btn-error').on('click', function(e) {
-    e.preventDefault();
-
-    hideValidationsErrors();
-
-    $errorAjax({
-      url : '/register',
-      method: 'POST',
-      dataType: 'json',
-      data: $form.serializeArray(),
-      error: function onSubmitError(data) {
-        if (data.responseJSON && data.responseJSON.errors) {
-          showValidationsErrors(data.responseJSON.errors);
-        }
-      }
-    });
-  });
+  $('.js-btn-success').on('click', submitFormWithResult('success'));
+  $('.js-btn-error').on('click', submitFormWithResult('error'));
 });
